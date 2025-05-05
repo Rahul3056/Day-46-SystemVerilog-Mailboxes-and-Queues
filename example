@@ -1,0 +1,95 @@
+
+
+## ✅ Example: Producer-Consumer Using Mailbox and Queue
+
+This testbench:
+
+* Uses a **mailbox** to transfer transactions from producer to consumer.
+* Stores received items in a **queue** inside the consumer for further processing.
+
+---
+
+### **1. Define a Simple Transaction Class**
+
+```systemverilog
+class Transaction;
+    rand int id;
+    function new(int i);
+        id = i;
+    endfunction
+endclass
+```
+
+---
+
+### **2. Producer-Consumer Testbench**
+
+```systemverilog
+module tb_mailbox_queue;
+
+    mailbox #(Transaction) mb = new();  // typed mailbox
+    Transaction queue_store[$];         // queue to store received transactions
+
+    // Producer: creates and sends transactions
+    task producer();
+        for (int i = 0; i < 5; i++) begin
+            Transaction t = new(i);
+            $display("[Producer] Sending transaction ID: %0d", t.id);
+            mb.put(t); // send to mailbox
+            #5;
+        end
+    endtask
+
+    // Consumer: receives from mailbox and stores in queue
+    task consumer();
+        Transaction t;
+        repeat (5) begin
+            mb.get(t); // blocking receive
+            $display("[Consumer] Received transaction ID: %0d", t.id);
+            queue_store.push_back(t);  // store in queue
+        end
+
+        // Display contents of the queue
+        $display("[Consumer] Queue contents:");
+        foreach (queue_store[i]) begin
+            $display("  -> Transaction ID: %0d", queue_store[i].id);
+        end
+    endtask
+
+    initial begin
+        fork
+            producer();
+            consumer();
+        join
+    end
+
+endmodule
+```
+
+---
+
+### **Output:**
+
+```
+[Producer] Sending transaction ID: 0
+[Consumer] Received transaction ID: 0
+[Producer] Sending transaction ID: 1
+[Consumer] Received transaction ID: 1
+...
+[Consumer] Queue contents:
+  -> Transaction ID: 0
+  -> Transaction ID: 1
+  -> Transaction ID: 2
+  -> Transaction ID: 3
+  -> Transaction ID: 4
+```
+
+---
+
+### ✅ Summary
+
+* **Mailbox (`put`, `get`)** is used to transfer `Transaction` objects between parallel threads.
+* **Queue (`push_back`)** is used to store received items in dynamic order.
+* This pattern is widely used in **UVM-style verification** and testbench architecture.
+
+
